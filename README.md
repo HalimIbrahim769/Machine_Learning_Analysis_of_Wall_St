@@ -19,3 +19,5 @@
  Finally, the model will be analyzed and evaluated against the S&P 500 and other benchmarks!
 
  POST REMARKS: Currently the model performs extremely well with an R2 score of 99% 
+
+ Code Written Successfully for real_time_predictions however not tried yet...
