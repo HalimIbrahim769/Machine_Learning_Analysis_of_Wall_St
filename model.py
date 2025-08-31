@@ -132,16 +132,13 @@ import pytz as time
 import time as tt
 
 
-# Get the current time in NY
-utc_now = datetime.now(time.utc)
-gmt_minus_4_timezone = time.timezone("Etc/GMT+4")
-gmt_minus_4_time = utc_now.astimezone(gmt_minus_4_timezone)
-time_string = gmt_minus_4_time.strftime("%H:%M")
-
-
-    
 def real_time_price(stock_code):
     i = 0
+    # Get the current time in NY
+    utc_now = datetime.now(time.utc)
+    gmt_minus_4_timezone = time.timezone("Etc/GMT+4")
+    gmt_minus_4_time = utc_now.astimezone(gmt_minus_4_timezone)
+    time_string = gmt_minus_4_time.strftime("%H:%M")
     while time_string != '9:30':
         #if the stock market closes
         if time_string == '4:30':
@@ -190,13 +187,12 @@ def real_time_price(stock_code):
 from datetime import datetime
 from zoneinfo import ZoneInfo
 now_ny = datetime.now(ZoneInfo("America/New_York")).toordinal()
-print(torch.tensor(float(now_ny), dim=1, requires_grad=True))
 
 stock_analysis.eval()
 with torch.inference_mode():
-    test_logits = stock_analysis(torch.tensor(float(now_ny)))
+    test_logits = stock_analysis(torch.tensor([[float(now_ny)]]))
     test_pred = test_logits * y_std + y_mean
-    price = torch.tensor(real_time_price(Ticker))
+    price = torch.tensor([[real_time_price(Ticker)]])
 
     r2 = r2_score(price, test_pred)
     loss = loss_fn(test_logits, price)
