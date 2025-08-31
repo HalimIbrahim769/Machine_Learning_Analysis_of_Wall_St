@@ -2,7 +2,7 @@ from torch import nn
 import torch
 import matplotlib.pyplot as plt
 import yfinance as yf
-from sklearn import model_selection as ms
+from sklearn.model_selection import train_test_split
 
 #Manual Seed to Assist with Replication
 torch.manual_seed(2008)
@@ -34,27 +34,27 @@ i = 0
 with open(file='Tickers.txt',mode='r') as f:
     tickers = f.readlines()
     for ticker in tickers:
-        #getting data from yahoofinance api
-        ticker_data = yf.Ticker(ticker=ticker).history(period='max').reset_index()
-        dates = ticker_data['Date'].dt.date.apply(lambda x: x.toordinal())
-        price = ticker_data['Close']
+        try:
+            #getting data from yahoofinance api
+            ticker_data = yf.Ticker(ticker=ticker).history(period='max').reset_index()
+            dates = ticker_data['Date'].dt.date.apply(lambda x: x.toordinal())
+            price = ticker_data['Close']
 
-        X = torch.tensor(dates.values, dtype=torch.float32).unsqueeze(1)
-        y = torch.tensor(price.values, dtype=torch.float32).unsqueeze(1)
+            X = torch.tensor(dates.values, dtype=torch.float32).unsqueeze(1)
+            y = torch.tensor(price.values, dtype=torch.float32).unsqueeze(1)
 
-        #split the data into training and testing data
-        X.numpy()
-        y.numpy()
-        X_train, X_test, y_train, y_test = ms.train_test_split((X, y), test_size=.2, train_size=.8, random_state=42)
+            #split the data into training and testing data
+            X.numpy()
+            y.numpy()
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2, train_size=.8, random_state=42)
 
-        X_train, y_train = torch.from_numpy(X_train), torch.from_numpy(y_train)
-        X_test, y_test = torch.from_numpy(X_test), torch.from_numpy(y_test)
-
-        combined_train_tensor = [i, X_train, y_train]
-        combined_test_tensor = [i, X_test, y_test]
-        i += 1
-        torch.save(combined_train_tensor, 'train_tensors.pt')
-        torch.save(combined_test_tensor, 'test_tensors.pt')
+            combined_train_tensor = [i, X_train, y_train]
+            combined_test_tensor = [i, X_test, y_test]
+            i += 1
+            torch.save(combined_train_tensor, 'train_tensors.pt')
+            torch.save(combined_test_tensor, 'test_tensors.pt')
+        except:
+            print(f'{ticker} is not available')
 
 
 
