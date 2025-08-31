@@ -58,7 +58,8 @@ stock_analysis = Stock_module()
 #Tickers they just are not all available and that takes time and computing power
 
 #Ticker Choice by user
-Ticker = str(input('What Stock would you like to analyze (Ticker): '))
+#Ticker = str(input('What Stock would you like to analyze (Ticker): '))
+Ticker = 'AAPL'
 
 #Gathering Ticker Data
 ticker_data = yf.Ticker(ticker=Ticker).history(period='max').reset_index()
@@ -68,6 +69,7 @@ price = ticker_data['Close']
 #Organizing Data
 X = torch.tensor(dates.values, dtype=torch.float32).unsqueeze(1)
 y = torch.tensor(price.values, dtype=torch.float32).unsqueeze(1)
+
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2, train_size=.8, random_state=42)
 
 #Reducing data so the model can process the loss
@@ -117,6 +119,84 @@ for epoch in range(epochs):
 
         test_loss = loss_fn(test_logits, y_test)
 
+    #Checking accuracy
     if epoch % 1000 == 0:
         #the closer the R2 is to 1 the better the model is
         print(f'Epoch: {epoch+1000} R2: {r2_score(y_true, test_pred):.2f} Loss: {loss:.2f} Test loss: {test_loss:.2f}')
+print("\n")
+
+#Testing the model on real time data
+# NY GMT is -4
+from datetime import datetime
+import pytz as time
+import time as tt
+
+
+# Get the current time in NY
+utc_now = datetime.now(time.utc)
+gmt_minus_4_timezone = time.timezone("Etc/GMT+4")
+gmt_minus_4_time = utc_now.astimezone(gmt_minus_4_timezone)
+time_string = gmt_minus_4_time.strftime("%H:%M")
+
+
+    
+def real_time_price(stock_code):
+    i = 0
+    while time_string != '9:30':
+        #if the stock market closes
+        if time_string == '4:30':
+            print('Stock Market is Closed Today')
+            break
+
+        i += 1
+        tt.sleep(60)
+        if i % 10 == 0:
+            print('The stock market has not opened yet...')
+        utc_now = datetime.now(time.utc)
+        gmt_minus_4_timezone = time.timezone("Etc/GMT+4")
+        gmt_minus_4_time = utc_now.astimezone(gmt_minus_4_timezone)
+        time_string = gmt_minus_4_time.strftime("%H:%M")
+        
+    #IMPORT LIBRARIES
+    from bs4 import BeautifulSoup
+    import requests
+    #REQUEST WEBPAGE AND STORE IT AS A VARIABLE
+    page_to_scrape = requests.get(f"https://www.google.com/finance/quote/{stock_code}:NASDAQ?hl=en")
+    #USE BEAUTIFULSOUP TO PARSE THE HTML AND STORE IT AS A VARIABLE
+    soup = BeautifulSoup(page_to_scrape.text, 'html.parser')
+    #FIND ALL THE ITEMS IN THE PAGE WITH A CLASS ATTRIBUTE OF 'TEXT'
+    #AND STORE THE LIST AS A VARIABLE
+    quotes = soup.findAll('div', attrs={'class':'YMlKec fxKbKc'})
+    for quote in quotes:
+        import re
+        trim = re.compile(r'[^\d.,]+')
+        price = trim.sub('', quote.text)
+        return price
+    if quotes == []: #if wrong stock exchange (NYSE)
+        page_to_scrape = requests.get(f"https://www.google.com/finance/quote/{stock_code}:NYSE?hl=en")
+        #NYSE
+        #USE BEAUTIFULSOUP TO PARSE THE HTML AND STORE IT AS A VARIABLE
+        soup = BeautifulSoup(page_to_scrape.text, 'html.parser')
+        #FIND ALL THE ITEMS IN THE PAGE WITH A CLASS ATTRIBUTE OF 'TEXT'
+        #AND STORE THE LIST AS A VARIABLE
+        num = soup.findAll('div', attrs={'class':'YMlKec fxKbKc'})
+        for nums in num:
+            import re
+            trim = re.compile(r'[^\d.,]+')
+            price = trim.sub('', nums.text)
+            return float(price)
+
+#get the current date since we analyze by the day not the hour/min
+from datetime import datetime
+from zoneinfo import ZoneInfo
+now_ny = datetime.now(ZoneInfo("America/New_York")).toordinal()
+
+stock_analysis.eval()
+with torch.inference_mode():
+    test_logits = stock_analysis(torch.tensor(now_ny))
+    test_pred = test_logits * y_std + y_mean
+    price = torch.tensor(real_time_price(Ticker))
+
+    r2 = r2_score(price, test_pred)
+    loss = loss_fn(test_logits, price)
+    print(f'R2: {r2:.2f}, Loss: {loss:.2f}')
