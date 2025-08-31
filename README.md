@@ -1,4 +1,10 @@
 # Machine_Learning_Analysis_of_Wall_St
+
+ WARNING: CURRENT PROGRAM USES CPU EXCLUSIVELY
+ this is due to the fact that I do not own a GPU
+
+
+ 
  I create a Machine Learning model that analyzes the stock market from historical data
  To do this I will use historical stock market data from yahoo finance's library
 
