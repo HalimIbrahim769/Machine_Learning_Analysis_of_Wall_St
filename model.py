@@ -34,4 +34,5 @@ with open(file='Tickers.txt',mode='r') as f:
     for ticker in tickers:
         
         #getting data from yahoofinance api
-        y = yf.download(ticker, interval='max')
+        ticker_data = yf.Ticker(ticker=ticker)
+        y.append(float(ticker_data.history('max')['Close'].to_list()))
