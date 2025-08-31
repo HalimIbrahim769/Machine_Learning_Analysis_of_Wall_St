@@ -89,7 +89,7 @@ optimizer = torch.optim.SGD(stock_analysis.parameters(), lr = .1)
 # Learning Rate Schedulers Seem to do Worse 
 
 y_logits = stock_analysis(X_test)
-epochs = 50000
+epochs = 10000
 
 compiled_model = torch.compile(stock_analysis) # helps run the model faster 
 from sklearn.metrics import r2_score
@@ -116,7 +116,7 @@ for epoch in range(epochs):
         test_loss = loss_fn(test_logits, y_test)
 
     #Checking accuracy
-    if epoch % 10000 == 0:
+    if epoch % 1000 == 0:
         #the closer the R2 is to 1 the better the model is
         print(f'Epoch: {epoch} R2: {r2_score(y_true, test_pred):.2f} Loss: {loss:.2f} Test loss: {test_loss:.2f}')
 print("\n")
@@ -189,7 +189,7 @@ now_ny = datetime.now(ZoneInfo("America/New_York")).toordinal()
 
 stock_analysis.eval()
 with torch.inference_mode():
-    test_logits = stock_analysis(torch.tensor(now_ny, dim=1))
+    test_logits = stock_analysis(torch.tensor(now_ny.values))
     test_pred = test_logits * y_std + y_mean
     price = torch.tensor(real_time_price(Ticker))
 
