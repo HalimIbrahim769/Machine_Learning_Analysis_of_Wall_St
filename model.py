@@ -27,10 +27,8 @@ class Stock_module(nn.Module):
 stock_analysis = Stock_module()
 #print(stock_analysis.state_dict())
 
-# Prepare Data
-
 #Reading Ticker File to Get Ticker
-i = 0
+#i = 0
 # with open(file='Tickers.txt',mode='r') as f:
 #     tickers = f.readlines()
 #     for ticker in tickers:
@@ -59,41 +57,48 @@ i = 0
 #I will use specific tickers because it is more efficient and faster however the code above does allow for multiple different
 #Tickers they just are not all available and that takes time and computing power
 
-#For now 
-#Ticker = str(input('What Stock would you like to analyze (Ticker): '))
-Ticker = 'AAPL'
+#Ticker Choice by user
+Ticker = str(input('What Stock would you like to analyze (Ticker): '))
+
+#Gathering Ticker Data
 ticker_data = yf.Ticker(ticker=Ticker).history(period='max').reset_index()
 dates = ticker_data['Date'].dt.date.apply(lambda x: x.toordinal())
 price = ticker_data['Close']
 
+#Organizing Data
 X = torch.tensor(dates.values, dtype=torch.float32).unsqueeze(1)
 y = torch.tensor(price.values, dtype=torch.float32).unsqueeze(1)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2, train_size=.8, random_state=42)
 
-#so the model can process the loss
-X_train_mean, X_train_std = X_train.mean(), X_train.std()
-y_train_mean, y_train_std = y_train.mean(), y_train.std()
+#Reducing data so the model can process the loss
+X_mean, X_std = X_train.mean(), X_train.std()
+y_mean, y_std = y_train.mean(), y_train.std()
 
-X_test_mean, X_test_std = X_test.mean(), X_test.std()
-y_test_mean, y_test_std = y_test.mean(), y_test.std()
+X_train = (X_train - X_mean) / X_std
+X_test = (X_test - X_mean) / X_std
 
-X_train = (X_train - X_train_mean) / X_train_std
-X_test = (X_test - X_test_mean) / X_test_std
+y_train = (y_train - y_mean) / y_std
+y_test = (y_test - y_mean) / y_std
 
-y_train = (y_train - y_train_mean) / y_train_std
-y_test = (y_test - y_test_mean) / y_train_std
 
 #Training and Testing
 loss_fn = nn.MSELoss()
-optimizer = torch.optim.SGD(stock_analysis.parameters(), lr = .0001)
+optimizer = torch.optim.SGD(stock_analysis.parameters(), lr = .1)
 
-epochs = 1000
+#Allows for the learning rate to change so that the model performs better
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1000, gamma=0.1)
+
+y_logits = stock_analysis(X_test)
+epochs = 10000
+
+compiled_model = torch.compile(stock_analysis) # helps run the model faster 
+from sklearn.metrics import r2_score
+
 for epoch in range(epochs):
     stock_analysis.train()
     y_logits = stock_analysis(X_train)
-    y_pred = y_logits * y_train_std + y_train_mean
+    loss = loss_fn(y_logits, y_train)
 
-    loss = loss_fn(y_pred, y_train)
 
     optimizer.zero_grad()
 
@@ -101,12 +106,17 @@ for epoch in range(epochs):
 
     optimizer.step()
 
+    scheduler.step()
+
     stock_analysis.eval()
     with torch.inference_mode():
         test_logits = stock_analysis(X_test)
-        test_pred = test_logits * y_test_std + y_test_mean
 
-        test_loss = loss_fn(test_pred, y_test)
-    
-    if epoch % 100 == 0:
-        print(f'Epoch: {epoch}/Loss: {loss}/Test loss: {test_loss}')
+        test_pred = test_logits.detach().numpy()
+        y_true = y_test.numpy()
+
+        test_loss = loss_fn(test_logits, y_test)
+
+    if epoch % 1000 == 0:
+        #the closer the R2 is to 1 the better the model is
+        print(f'Epoch: {epoch+1000} R2: {r2_score(y_true, test_pred):.2f} Loss: {loss:.2f} Test loss: {test_loss:.2f}')
