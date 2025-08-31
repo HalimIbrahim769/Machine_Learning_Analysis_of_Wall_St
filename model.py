@@ -86,7 +86,9 @@ y_test = (y_test - y_mean) / y_std
 loss_fn = nn.MSELoss()
 optimizer = torch.optim.SGD(stock_analysis.parameters(), lr = .1)
 
-# Learning Rate Schedulers Seem to do Worse 
+# Learning Rate Scheduler
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1000, min_lr=1e-5)
+ 
 
 y_logits = stock_analysis(X_test)
 epochs = 10000
@@ -114,6 +116,8 @@ for epoch in range(epochs):
         y_true = y_test.numpy()
 
         test_loss = loss_fn(test_logits, y_test)
+
+    scheduler.step(test_loss)
 
     #Checking accuracy
     if epoch % 1000 == 0:
@@ -186,10 +190,11 @@ def real_time_price(stock_code):
 from datetime import datetime
 from zoneinfo import ZoneInfo
 now_ny = datetime.now(ZoneInfo("America/New_York")).toordinal()
+print(torch.tensor(float(now_ny), dim=1, requires_grad=True))
 
 stock_analysis.eval()
 with torch.inference_mode():
-    test_logits = stock_analysis(torch.tensor(now_ny.values))
+    test_logits = stock_analysis(torch.tensor(float(now_ny)))
     test_pred = test_logits * y_std + y_mean
     price = torch.tensor(real_time_price(Ticker))
 
