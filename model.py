@@ -58,7 +58,7 @@ stock_analysis = Stock_module()
 #Tickers they just are not all available and that takes time and computing power
 
 #Ticker Choice by user
-Ticker = str(input('What Stock would you like to analyze (Ticker): '))
+Ticker = str(input('What Stock would you like to analyze? (Ticker): '))
 
 #Gathering Ticker Data
 ticker_data = yf.Ticker(ticker=Ticker).history(period='max').reset_index()
