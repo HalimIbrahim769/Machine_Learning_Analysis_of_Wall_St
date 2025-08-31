@@ -2,6 +2,7 @@ from torch import nn
 import torch
 import matplotlib.pyplot as plt
 import yfinance as yf
+from sklearn import model_selection as ms
 
 #Manual Seed to Assist with Replication
 torch.manual_seed(2008)
@@ -24,15 +25,59 @@ class Stock_module(nn.Module):
 
 #Visualization of our module
 stock_analysis = Stock_module()
-print(stock_analysis.state_dict())
+#print(stock_analysis.state_dict())
 
-# Reading Ticker file
-X, y = [], []
+# Prepare Data
 
+#Reading Ticker File to Get Ticker
+i = 0
 with open(file='Tickers.txt',mode='r') as f:
     tickers = f.readlines()
     for ticker in tickers:
-        
         #getting data from yahoofinance api
-        ticker_data = yf.Ticker(ticker=ticker)
-        y.append(float(ticker_data.history('max')['Close'].to_list()))
+        ticker_data = yf.Ticker(ticker=ticker).history(period='max').reset_index()
+        dates = ticker_data['Date'].dt.date.apply(lambda x: x.toordinal())
+        price = ticker_data['Close']
+
+        X = torch.tensor(dates.values, dtype=torch.float32).unsqueeze(1)
+        y = torch.tensor(price.values, dtype=torch.float32).unsqueeze(1)
+
+        #split the data into training and testing data
+        X.numpy()
+        y.numpy()
+        X_train, X_test, y_train, y_test = ms.train_test_split((X, y), test_size=.2, train_size=.8, random_state=42)
+
+        X_train, y_train = torch.from_numpy(X_train), torch.from_numpy(y_train)
+        X_test, y_test = torch.from_numpy(X_test), torch.from_numpy(y_test)
+
+        combined_train_tensor = [i, X_train, y_train]
+        combined_test_tensor = [i, X_test, y_test]
+        i += 1
+        torch.save(combined_train_tensor, 'train_tensors.pt')
+        torch.save(combined_test_tensor, 'test_tensors.pt')
+
+
+
+#Training and Testing
+loss_fn = nn.CrossEntropyLoss()
+optimizer = torch.optim.SGD(stock_analysis.parameters(), lr = .00001)
+
+epochs = 1000
+for epoch in range(epochs):
+    stock_analysis.train()
+    y_logits = stock_analysis(torch.load('train_tensors.pt')[1])
+
+    loss = loss_fn(y_logits, torch.load('test_tensors.pt')[2])
+
+    optimizer.zero_grad()
+
+    loss.backward()
+
+    stock_analysis.eval()
+    with torch.inference_mode():
+        test_logits = stock_analysis(torch.load('test_tensors,pt')[1])
+
+        test_loss = loss_fn(test_logits, torch.load('test_tensors.pt')[2])
+    
+    if epoch % 10 == 0:
+        print(f'Epoch: {epoch}/Loss: {loss}/Test loss: {test_loss}')
