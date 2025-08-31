@@ -54,12 +54,11 @@ stock_analysis = Stock_module()
 #         except:
 #             print(f'{ticker} is not available')
 
-#I will use specific tickers because it is more efficient and faster however the code above does allow for multiple different
+#**I will use specific tickers because it is more efficient and faster however the code above does allow for multiple different
 #Tickers they just are not all available and that takes time and computing power
 
 #Ticker Choice by user
-#Ticker = str(input('What Stock would you like to analyze (Ticker): '))
-Ticker = 'AAPL'
+Ticker = str(input('What Stock would you like to analyze (Ticker): '))
 
 #Gathering Ticker Data
 ticker_data = yf.Ticker(ticker=Ticker).history(period='max').reset_index()
@@ -156,7 +155,7 @@ def real_time_price(stock_code):
         gmt_minus_4_timezone = time.timezone("Etc/GMT+4")
         gmt_minus_4_time = utc_now.astimezone(gmt_minus_4_timezone)
         time_string = gmt_minus_4_time.strftime("%H:%M")
-        
+
     #IMPORT LIBRARIES
     from bs4 import BeautifulSoup
     import requests
