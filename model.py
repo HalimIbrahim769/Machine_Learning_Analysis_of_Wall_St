@@ -141,6 +141,7 @@ def real_time_price(stock_code):
     time_string = gmt_minus_4_time.strftime("%H:%M")
     while time_string != '9:30':
         #if the stock market closes
+        print('It is not time yet...')
         if time_string == '4:30':
             print('Stock Market is Closed Today')
             break
