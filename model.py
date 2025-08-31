@@ -58,7 +58,10 @@ i = 0
 
 #I will use specific tickers because it is more efficient and faster however the code above does allow for multiple different
 #Tickers they just are not all available and that takes time and computing power
-Ticker = str(input('What Stock would you like to analyze (Ticker): '))
+
+#For now 
+#Ticker = str(input('What Stock would you like to analyze (Ticker): '))
+Ticker = 'AAPL'
 ticker_data = yf.Ticker(ticker=Ticker).history(period='max').reset_index()
 dates = ticker_data['Date'].dt.date.apply(lambda x: x.toordinal())
 price = ticker_data['Close']
@@ -67,26 +70,43 @@ X = torch.tensor(dates.values, dtype=torch.float32).unsqueeze(1)
 y = torch.tensor(price.values, dtype=torch.float32).unsqueeze(1)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2, train_size=.8, random_state=42)
 
+#so the model can process the loss
+X_train_mean, X_train_std = X_train.mean(), X_train.std()
+y_train_mean, y_train_std = y_train.mean(), y_train.std()
+
+X_test_mean, X_test_std = X_test.mean(), X_test.std()
+y_test_mean, y_test_std = y_test.mean(), y_test.std()
+
+X_train = (X_train - X_train_mean) / X_train_std
+X_test = (X_test - X_test_mean) / X_test_std
+
+y_train = (y_train - y_train_mean) / y_train_std
+y_test = (y_test - y_test_mean) / y_train_std
+
 #Training and Testing
-loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(stock_analysis.parameters(), lr = .00001)
+loss_fn = nn.MSELoss()
+optimizer = torch.optim.SGD(stock_analysis.parameters(), lr = .0001)
 
 epochs = 1000
 for epoch in range(epochs):
     stock_analysis.train()
     y_logits = stock_analysis(X_train)
+    y_pred = y_logits * y_train_std + y_train_mean
 
-    loss = loss_fn(y_logits, y_train)
+    loss = loss_fn(y_pred, y_train)
 
     optimizer.zero_grad()
 
     loss.backward()
 
+    optimizer.step()
+
     stock_analysis.eval()
     with torch.inference_mode():
         test_logits = stock_analysis(X_test)
+        test_pred = test_logits * y_test_std + y_test_mean
 
-        test_loss = loss_fn(test_logits, y_test)
+        test_loss = loss_fn(test_pred, y_test)
     
-    if epoch % 10 == 0:
+    if epoch % 100 == 0:
         print(f'Epoch: {epoch}/Loss: {loss}/Test loss: {test_loss}')
