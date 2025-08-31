@@ -26,5 +26,12 @@ class Stock_module(nn.Module):
 stock_analysis = Stock_module()
 print(stock_analysis.state_dict())
 
-# #Creating X and y variables
-yf.download()
+# Reading Ticker file
+X, y = [], []
+
+with open(file='Tickers.txt',mode='r') as f:
+    tickers = f.readlines()
+    for ticker in tickers:
+        
+        #getting data from yahoofinance api
+        y = yf.download(ticker, interval='max')

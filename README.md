@@ -4,7 +4,9 @@
  this is due to the fact that I do not own a GPU
 
 
- 
+
+ *Tickers.txt is a text file with all the stocks on the NASDAQ*
+
  I create a Machine Learning model that analyzes the stock market from historical data
  To do this I will use historical stock market data from yahoo finance's library
 
