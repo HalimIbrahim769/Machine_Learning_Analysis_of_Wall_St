@@ -19,7 +19,9 @@ class Stock_module(nn.Module):
     def forward(self, x):
         return self.layer_3(self.relu(self.layer_2(self.relu(self.layer_1(x)))))
 
+#Visualization of our module
 stock_analysis = Stock_module()
-print(stock_analysis.state_dict)
-##Creating X and y variables
+print(stock_analysis.state_dict())
+
+# #Creating X and y variables
 yf.download()
