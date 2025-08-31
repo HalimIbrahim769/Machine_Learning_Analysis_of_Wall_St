@@ -3,6 +3,9 @@ import torch
 import matplotlib.pyplot as plt
 import yfinance as yf
 
+#Manual Seed to Assist with Replication
+torch.manual_seed(2008)
+
 # Creation of a Very Simple Module
 class Stock_module(nn.Module):
     def __init__(self):
