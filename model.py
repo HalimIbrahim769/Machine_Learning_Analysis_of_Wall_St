@@ -18,12 +18,13 @@ class Stock_module(nn.Module):
         self.layer_3 = nn.Linear(in_features=16, out_features=1)
 
         #Due to the stock market being stochastic the non-linear layer allows for more flexibility with out module
-        self.relu = nn.Softplus()
+        self.relu = nn.ReLU()
     
     def forward(self, x):
         return self.layer_3(self.relu(self.layer_2(self.relu(self.layer_1(x)))))
 
 #Visualization of our module
+torch.manual_seed(2008)
 stock_analysis = Stock_module()
 #print(stock_analysis.state_dict())
 
@@ -58,6 +59,7 @@ stock_analysis = Stock_module()
 #Tickers they just are not all available and that takes time and computing power
 
 #Ticker Choice by user
+torch.manual_seed(2008)
 #Ticker = str(input('What Stock would you like to analyze? (Ticker): '))
 Ticker = "AAPL"
 
@@ -70,54 +72,72 @@ price = ticker_data['Close']
 X = torch.tensor(dates.values, dtype=torch.float32).unsqueeze(1)
 y = torch.tensor(price.values, dtype=torch.float32).unsqueeze(1)
 
-X_train, X_test, y_initial_train, y_initial_test = train_test_split(X, y, test_size=.2, train_size=.8, random_state=2008)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2, train_size=.8, random_state=2008)
 
-y_train = torch.sigmoid(y_initial_train)
-y_test = torch.sigmoid(y_initial_test)
+#Reducing data so the model can process the loss
+
+X_mean, X_std = X_train.mean(), X_train.std()
+y_mean, y_std = y_train.mean(), y_train.std()
+
+X_train = (X_train - X_mean) / X_std
+X_test = (X_test - X_mean) / X_std
+
+y_train = (y_train - y_mean) / y_std
+y_test = (y_test - y_mean) / y_std
+
 
 #Training and Testing
+torch.manual_seed(2008)
 loss_fn = nn.MSELoss()
+
+torch.manual_seed(2008)
 optimizer = torch.optim.SGD(stock_analysis.parameters(), lr = .1)
 
 # Learning Rate Scheduler
+torch.manual_seed(2008)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1000, min_lr=1e-5)
-
+ 
 
 y_logits = stock_analysis(X_test)
 epochs = 10000
-
+torch.manual_seed(2008)
 compiled_model = torch.compile(stock_analysis) # helps run the model faster 
+
+import torch
 from sklearn.metrics import r2_score
 
+torch.manual_seed(2008)
+
 for epoch in range(epochs):
+    # Training mode
     stock_analysis.train()
-    y_logits = torch.sigmoid(stock_analysis(X_train))
-
+    
+    # Forward pass
+    y_logits = stock_analysis(X_train)
+    
+    # Compute training loss
     loss = loss_fn(y_logits, y_train)
-
+    
+    # Backpropagation
     optimizer.zero_grad()
-
     loss.backward()
-
     optimizer.step()
-
+    
+    # Evaluation mode
     stock_analysis.eval()
     with torch.inference_mode():
         test_logits = stock_analysis(X_test)
-
-        test_pred = torch.sigmoid(test_logits)
-
-        test_loss = loss_fn(test_pred, y_test)
-
+        test_loss = loss_fn(test_logits, y_test)
+    
+    # Optional: Learning rate scheduler
     scheduler.step(test_loss)
-
-    #Checking accuracy
+    
+    # Every 1000 epochs, print R² score and losses
     if epoch % 1000 == 0:
-        print(test_logits[:5])
-        #the closer the R2 is to 1 the better the model is
-        print(f'Epoch: {epoch} R2: {r2_score(y_initial_test, test_logits):.2f} Loss: {loss:.2f} Test loss: {test_loss:.2f}')
-
+        r2 = r2_score(y_true=y_test.cpu().numpy(), y_pred=test_logits.cpu().numpy())
+        print(f'Epoch: {epoch} | R2: {r2:.2f} | Train Loss: {loss.item():.4f} | Test Loss: {test_loss.item():.4f}')
 print("\n")
+
 #Testing the model on real time data
 # NY GMT is -4
 from datetime import datetime
@@ -181,12 +201,14 @@ def real_time_price(stock_code):
 from datetime import datetime
 from zoneinfo import ZoneInfo
 now_ny = datetime.now(ZoneInfo("America/New_York")).toordinal()
+now_ny = (now_ny - X_mean) / X_std
 
+torch.manual_seed(2008)
 stock_analysis.eval()
 with torch.inference_mode():
     test_logits = stock_analysis(torch.tensor([[float(now_ny)]]))
-    test_pred = test_logits
-    print(f"The Model predicts that the price of {Ticker} is {test_pred*thousands}")
+    test_pred = (test_logits * y_std) + y_mean
+    print(f"The Model predicts that the price of {Ticker} is {test_pred}")
 
     price = torch.tensor([[real_time_price(Ticker)]])
     print(f"The actual price of {Ticker} today is {price}")
