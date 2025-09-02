@@ -18,7 +18,7 @@ class Stock_module(nn.Module):
         self.layer_3 = nn.Linear(in_features=16, out_features=1)
 
         #Due to the stock market being stochastic the non-linear layer allows for more flexibility with out module
-        self.relu = nn.ReLU()
+        self.relu = nn.Softplus()
     
     def forward(self, x):
         return self.layer_3(self.relu(self.layer_2(self.relu(self.layer_1(x)))))
@@ -70,10 +70,10 @@ price = ticker_data['Close']
 X = torch.tensor(dates.values, dtype=torch.float32).unsqueeze(1)
 y = torch.tensor(price.values, dtype=torch.float32).unsqueeze(1)
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2, train_size=.8, random_state=42)
+X_train, X_test, y_initial_train, y_initial_test = train_test_split(X, y, test_size=.2, train_size=.8, random_state=2008)
 
-#Reducing data so the model can process the loss
-
+y_train = torch.sigmoid(y_initial_train)
+y_test = torch.sigmoid(y_initial_test)
 
 #Training and Testing
 loss_fn = nn.MSELoss()
@@ -81,7 +81,7 @@ optimizer = torch.optim.SGD(stock_analysis.parameters(), lr = .1)
 
 # Learning Rate Scheduler
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1000, min_lr=1e-5)
- 
+
 
 y_logits = stock_analysis(X_test)
 epochs = 10000
@@ -91,7 +91,7 @@ from sklearn.metrics import r2_score
 
 for epoch in range(epochs):
     stock_analysis.train()
-    y_logits = stock_analysis(X_train)
+    y_logits = torch.sigmoid(stock_analysis(X_train))
 
     loss = loss_fn(y_logits, y_train)
 
@@ -105,10 +105,9 @@ for epoch in range(epochs):
     with torch.inference_mode():
         test_logits = stock_analysis(X_test)
 
-        test_pred = test_logits.detach().numpy()
-        y_true = y_test.numpy()
+        test_pred = torch.sigmoid(test_logits)
 
-        test_loss = loss_fn(test_logits, y_test)
+        test_loss = loss_fn(test_pred, y_test)
 
     scheduler.step(test_loss)
 
@@ -116,7 +115,8 @@ for epoch in range(epochs):
     if epoch % 1000 == 0:
         print(test_logits[:5])
         #the closer the R2 is to 1 the better the model is
-        print(f'Epoch: {epoch} R2: {r2_score(y_true, test_pred):.2f} Loss: {loss:.2f} Test loss: {test_loss:.2f}')
+        print(f'Epoch: {epoch} R2: {r2_score(y_initial_test, test_logits):.2f} Loss: {loss:.2f} Test loss: {test_loss:.2f}')
+
 print("\n")
 #Testing the model on real time data
 # NY GMT is -4
@@ -186,7 +186,7 @@ stock_analysis.eval()
 with torch.inference_mode():
     test_logits = stock_analysis(torch.tensor([[float(now_ny)]]))
     test_pred = test_logits
-    print(f"The Model predicts that the price of {Ticker} is {test_pred}")
+    print(f"The Model predicts that the price of {Ticker} is {test_pred*thousands}")
 
     price = torch.tensor([[real_time_price(Ticker)]])
     print(f"The actual price of {Ticker} today is {price}")
