@@ -58,7 +58,8 @@ stock_analysis = Stock_module()
 #Tickers they just are not all available and that takes time and computing power
 
 #Ticker Choice by user
-Ticker = str(input('What Stock would you like to analyze? (Ticker): '))
+#Ticker = str(input('What Stock would you like to analyze? (Ticker): '))
+Ticker = "AAPL"
 
 #Gathering Ticker Data
 ticker_data = yf.Ticker(ticker=Ticker).history(period='max').reset_index()
@@ -72,14 +73,6 @@ y = torch.tensor(price.values, dtype=torch.float32).unsqueeze(1)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2, train_size=.8, random_state=42)
 
 #Reducing data so the model can process the loss
-X_mean, X_std = X_train.mean(), X_train.std()
-y_mean, y_std = y_train.mean(), y_train.std()
-
-X_train = (X_train - X_mean) / X_std
-X_test = (X_test - X_mean) / X_std
-
-y_train = (y_train - y_mean) / y_std
-y_test = (y_test - y_mean) / y_std
 
 
 #Training and Testing
@@ -99,8 +92,8 @@ from sklearn.metrics import r2_score
 for epoch in range(epochs):
     stock_analysis.train()
     y_logits = stock_analysis(X_train)
-    loss = loss_fn(y_logits, y_train)
 
+    loss = loss_fn(y_logits, y_train)
 
     optimizer.zero_grad()
 
@@ -121,10 +114,10 @@ for epoch in range(epochs):
 
     #Checking accuracy
     if epoch % 1000 == 0:
+        print(test_logits[:5])
         #the closer the R2 is to 1 the better the model is
         print(f'Epoch: {epoch} R2: {r2_score(y_true, test_pred):.2f} Loss: {loss:.2f} Test loss: {test_loss:.2f}')
 print("\n")
-
 #Testing the model on real time data
 # NY GMT is -4
 from datetime import datetime
@@ -192,8 +185,8 @@ now_ny = datetime.now(ZoneInfo("America/New_York")).toordinal()
 stock_analysis.eval()
 with torch.inference_mode():
     test_logits = stock_analysis(torch.tensor([[float(now_ny)]]))
-    test_pred = test_logits * y_std + y_mean
-    print(f"The Model predicts that the price of {Ticker} is {test_logits}")
+    test_pred = test_logits
+    print(f"The Model predicts that the price of {Ticker} is {test_pred}")
 
     price = torch.tensor([[real_time_price(Ticker)]])
     print(f"The actual price of {Ticker} today is {price}")
