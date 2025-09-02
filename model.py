@@ -60,14 +60,14 @@ stock_analysis = Stock_module()
 
 #Ticker Choice by user
 torch.manual_seed(2008)
-#Ticker = str(input('What Stock would you like to analyze? (Ticker): '))
-Ticker = "AAPL"
+Ticker = str(input('What Stock would you like to analyze? (Ticker): '))
+#Ticker = "AAPL"
 
 #Gathering Ticker Data
 ticker_data = yf.Ticker(ticker=Ticker).history(period='max').reset_index()
 dates = ticker_data['Date'].dt.date.apply(lambda x: x.toordinal())
 price = ticker_data['Close']
-
+print(ticker_data['Date'][0])
 #Organizing Data
 X = torch.tensor(dates.values, dtype=torch.float32).unsqueeze(1)
 y = torch.tensor(price.values, dtype=torch.float32).unsqueeze(1)
@@ -200,7 +200,8 @@ def real_time_price(stock_code):
 #get the current date since we analyze by the day not the hour/min
 from datetime import datetime
 from zoneinfo import ZoneInfo
-now_ny = datetime.now(ZoneInfo("America/New_York")).toordinal()
+time_now = datetime.now(ZoneInfo("America/New_York"))
+now_ny = time_now.toordinal()
 now_ny = (now_ny - X_mean) / X_std
 
 torch.manual_seed(2008)
@@ -208,7 +209,7 @@ stock_analysis.eval()
 with torch.inference_mode():
     test_logits = stock_analysis(torch.tensor([[float(now_ny)]]))
     test_pred = (test_logits * y_std) + y_mean
-    print(f"The Model predicts that the price of {Ticker} is {test_pred}")
+    print(f"The Model predicts that the price of {Ticker} is {test_pred} at {time_now}")
 
     price = torch.tensor([[real_time_price(Ticker)]])
     print(f"The actual price of {Ticker} today is {price}")
