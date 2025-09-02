@@ -193,7 +193,7 @@ stock_analysis.eval()
 with torch.inference_mode():
     test_logits = stock_analysis(torch.tensor([[float(now_ny)]]))
     test_pred = test_logits * y_std + y_mean
-    print(f"The Model predicts that the price of {Ticker} is {test_pred}")
+    print(f"The Model predicts that the price of {Ticker} is {test_logits}")
 
     price = torch.tensor([[real_time_price(Ticker)]])
     print(f"The actual price of {Ticker} today is {price}")
