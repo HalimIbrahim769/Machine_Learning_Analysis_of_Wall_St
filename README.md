@@ -3,8 +3,6 @@
  WARNING: CURRENT PROGRAM USES CPU EXCLUSIVELY
  this is due to the fact that I do not own a GPU
 
-
-
  *Tickers.txt is a text file with all the stocks on the NASDAQ*
 
  I created a Machine Learning model that analyzes the stock market from historical data
@@ -16,9 +14,7 @@
 
  Then the model will be tested on real time data
 
- Finally, the model will be analyzed and evaluated against the S&P 500 and other benchmarks!
-
  POST REMARKS: Currently the model performs extremely well with an R2 score of 99% with AAPL however different stocks may produce different results (ex: MSFT results in 98%)
  Overall the longer you train it the better it works (however its much, MUCH, slower)
 
- Code Written Successfully for real_time_predictions however not tried yet...
+ Code Written Successfully for real_time_predictions however I have not tried yet...
